@@ -222,7 +222,9 @@ fun deleteItem(
 
     val newSlots = slots.toMutableList() // делаем копию списка слотов для его редактирования
     val current = newSlots[slotsIndex]
-
+    val amount = 1
+    val toRemove = minOf(amount, item.maxStack)
+    val delSpace: Int
 
     if (current == null){
         // Если слот куда хотим положить - пуст, создаем в нем новый стак
@@ -231,7 +233,7 @@ fun deleteItem(
     }
 
     if (current.item.id == item.id){
-
+        delSpace = amount - item.maxStack
     }
 
     bus.publish(

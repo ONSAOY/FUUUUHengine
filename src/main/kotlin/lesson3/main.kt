@@ -13,6 +13,7 @@ import de.fabmax.kool.pipeline.ClearColorLoad
 import de.fabmax.kool.modules.ui2.*
 import de.fabmax.kool.modules.ui2.UiModifier.*
 import org.w3c.dom.Text
+import kotlin.String
 
 enum class ItemType{
     WEAPON,
@@ -126,6 +127,12 @@ data class EffectApplied(
     val ticks: Int
 ) : GameEvent
 
+data class ItemDeleted(
+    override val playerId: String,
+    val itemId: String,
+    val amount: Int
+) : GameEvent
+
 data class QestStepComplited(
     override val playerId: String,
     val questId: String,
@@ -205,6 +212,37 @@ class QuestSystem(
     }
 }
 
+fun deleteItem(
+    slots: List<ItemStack?>,
+    slotsIndex: Int,
+    item: Item,
+    bus: EventBus
+): List<ItemStack?>{
+    // - предмета
+
+    val newSlots = slots.toMutableList() // делаем копию списка слотов для его редактирования
+    val current = newSlots[slotsIndex]
+
+
+    if (current == null){
+        // Если слот куда хотим положить - пуст, создаем в нем новый стак
+        println("Брочачос, нечего тебе выкидывать")
+        return newSlots
+    }
+
+    if (current.item.id == item.id){
+
+    }
+
+    bus.publish(
+        ItemDeleted(
+            playerId,
+            itemId,
+            amount
+        )
+    )
+}
+
 fun putIntoSlot(
     slots: List<ItemStack?>,
     slotsIndex: Int,
@@ -276,6 +314,7 @@ fun main() = KoolApplication{
             is DamageDealt -> "${event.playerId} нанес ${event.amount} урона ${event.targetId}"
             is EffectApplied -> "Эффект ${event.effectId} наложен на ${event.ticks} тиков"
             is QestStepComplited -> "Шаг ${event.stepIndex + 1} квеста ${event.questId}"
+            is ItemDeleted ->  "Предмет удален: ${event.itemId}"
         }
 
         pushLog(game, "[${event.playerId} $line]")
@@ -285,18 +324,18 @@ fun main() = KoolApplication{
     addScene {
         defaultOrbitCamera()
 
-        addColorMesh {
-            generate { cube{colored()} }
-
-            shader = KslPbrShader {
-                color { vertexColor() }
-                metallic(0.7f)
-                roughness(0.10f)
-            }
-            onUpdate{
-                transform.rotate(45f.deg * Time.deltaT, Vec3f.Z_AXIS)
-            }
-        }
+//        addColorMesh {
+//            generate { cube{colored()} }
+//
+//            shader = KslPbrShader {
+//                color { vertexColor() }
+//                metallic(0.7f)
+//                roughness(0.10f)
+//            }
+//            onUpdate{
+//                transform.rotate(45f.deg * Time.deltaT, Vec3f.Z_AXIS)
+//            }
+//        }
 
         lighting.singleDirectionalLight {
             setup(Vec3f(-1f, -1f, 1f))
@@ -402,6 +441,17 @@ fun main() = KoolApplication{
                             game.hotbar.value = updated
 
                             bus.publish(ItemAdded(pid, SWORD.id, 1, leftOver))
+                        }
+                    }
+                    Button ("Выбросить "){
+                        modifier.margin(end = 8.dp).onClick{
+                            val pid = game.playerId.value
+                            val idx = game.selectedSlot.value
+
+                            val (updated, leftOver) = ItemDeleted(game.hotbar.value, idx,1)
+                            game.hotbar.value = updated
+
+                            bus.publish(ItemDe(pid, SWORD.id, 1, leftOver))
                         }
                     }
                 }

@@ -216,15 +216,18 @@ fun deleteItem(
     slots: List<ItemStack?>,
     slotsIndex: Int,
     item: Item,
-    bus: EventBus
+    bus: EventBus,
+    playerId: String
 ): List<ItemStack?>{
     // - предмета
 
     val newSlots = slots.toMutableList() // делаем копию списка слотов для его редактирования
     val current = newSlots[slotsIndex]
     val amount = 1
-    val toRemove = minOf(amount, item.maxStack)
-    val delSpace: Int
+    val playerId
+
+//    val toRemove = minOf(amount, item.maxStack)
+//    val delSpace: Int
 
     if (current == null){
         // Если слот куда хотим положить - пуст, создаем в нем новый стак
@@ -232,9 +235,11 @@ fun deleteItem(
         return newSlots
     }
 
-    if (current.item.id == item.id){
-        delSpace = amount - item.maxStack
-    }
+    newSlots[slotsIndex] = null
+
+//    if (current.item.id == item.id){
+//        delSpace = amount - item.maxStack
+//    }
 
     bus.publish(
         ItemDeleted(
@@ -243,6 +248,8 @@ fun deleteItem(
             amount
         )
     )
+
+    return newSlots
 }
 
 fun putIntoSlot(
@@ -449,11 +456,22 @@ fun main() = KoolApplication{
                         modifier.margin(end = 8.dp).onClick{
                             val pid = game.playerId.value
                             val idx = game.selectedSlot.value
+                            val playerId
 
-                            val (updated, leftOver) = ItemDeleted(game.hotbar.value, idx,1)
-                            game.hotbar.value = updated
+                            addColorMesh {
+                                generate { cube{colored()} }
 
-                            bus.publish(ItemDe(pid, SWORD.id, 1, leftOver))
+                                shader = KslPbrShader {
+                                    color { vertexColor() }
+                                    metallic(0.7f)
+                                    roughness(0.10f)
+                                }
+                                onUpdate{
+                                    transform.rotate(45f.deg * Time.deltaT, Vec3f.Z_AXIS)
+                                }
+                            }
+
+                            bus.publish(ItemDeleted(pid, SWORD.id, 1,))
                         }
                     }
                 }

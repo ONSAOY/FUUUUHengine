@@ -142,7 +142,7 @@ class CooldownManager(
     private val game: GameState,
     private val scope: kotlinx.coroutines.CoroutineScope
 ){
-    private val cooldownJob: Job? = null
+    private var cooldownJob: Job? = null
 
     fun startAttackCooldown(totalMs: Long){
         cooldownJob?.cancel()

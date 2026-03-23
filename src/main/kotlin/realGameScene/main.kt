@@ -1,5 +1,7 @@
 package realGameScene
 
+import QuestJournal2.PlayerData
+import QuestJournal2.QuestSystem
 import de.fabmax.kool.KoolApplication
 import de.fabmax.kool.addScene
 import de.fabmax.kool.math.Vec3f
@@ -159,13 +161,13 @@ fun buildAchemistDialogue(player: PlayerState): DialogueView{
         }
 
         QuestState.WAIT_HERB -> {
-            if (herbs < 3){
+            if (herbs < 3) {
                 DialogueView(
                     "Алхимик",
                     "Пока ты собрал только $herbs/4 травы, возвращайся с полным товаром",
                     emptyList()
                 )
-            }else{
+            } else {
                 DialogueView(
                     "Алхимик",
                     "Отличный товар, давай сюда!",
@@ -177,20 +179,195 @@ fun buildAchemistDialogue(player: PlayerState): DialogueView{
                     )
                 )
             }
-            QuestState.GOOD_END -> {
-                val text =
-                    if (memory.receivedHerb){
-                        "Спасибо, я теперь точно много зелий наварю, я тебя запомнил, заходи ещё"
-                    }else{
-                        "Ты завершил квест, но память не обновилась"
-                    }
-                DialogueView(
-                    "Алхимик",
-                    text,
-                    emptyList()
-                )
-            }
-
+        }
+        QuestState.GOOD_END -> {
+            val text =
+                if (memory.receivedHerb){
+                    "Спасибо, я теперь точно много зелий наварю, я тебя запомнил, заходи ещё"
+                }else{
+                    "Ты завершил квест, но память не обновилась"
+                }
+            DialogueView(
+                "Алхимик",
+                text,
+                emptyList()
+            )
+        }
+        QuestState.BAD_END -> {
+            DialogueView(
+                "Алхимик",
+                "Я не хочу с тобой разговаривать",
+                emptyList()
+            )
         }
     }
+}
+
+// Команды клиента к серверу
+
+sealed interface GameCommand{
+    val playerId: String
+}
+
+// Команда перемещения игрока
+data class CmdMovePlayer(
+    override val playerId: String,
+    val dx: Float,
+    val dz: Float
+): GameCommand
+
+// оманда взаимодействия игрока с обьектом
+data class CmdInteract(
+    override val playerId: String
+): GameCommand
+
+// Команда выбора варианта диалога
+data class CmdChooseDialogueoption(
+    override val playerId: String,
+    val optionId: String
+): GameCommand
+
+data class CmdSwitchActivePlayer(
+    override val playerId: String,
+    val newPlayerId: String
+): GameCommand
+
+// События сервера к клиенту
+
+sealed interface GameEvent{
+    val playerId: String
+}
+
+data class EnteredArea(
+    override val playerId: String,
+    val areaId: String
+): GameEvent
+
+data class LeftArea(
+    override val playerId: String,
+    val areaId: String
+): GameEvent
+
+data class InteractWithNpc(
+    override val playerId: String,
+    val npcId: String
+): GameEvent
+
+data class InteractedWithHerbSource(
+    override val playerId: String,
+    val sourceId: String
+): GameEvent
+
+data class InventoryChanged(
+    override val playerId: String,
+    val itemId: String,
+    val newCount: Int
+): GameEvent
+
+data class QuestStateChanged(
+    override val playerId: String,
+    val newState: QuestState
+): GameEvent
+
+data class NpcMemoryChanged(
+    override val playerId: String,
+    val memory: NpcMemory
+): GameEvent
+
+data class ServerMessage(
+    override val playerId: String,
+    val text: String
+): GameEvent
+
+// Серверная логика мира
+
+class GameServer{
+    // Список обьектов мира
+    val worldObjects = listOf(
+        WorldObjectDef(
+            "alchemist",
+            WorldObjectType.ALCHEMIST,
+            -3f,
+            0f,
+            1.7f
+        ),
+        WorldObjectDef(
+            "herb_source",
+            WorldObjectType.HERB_SOURCE,
+            3f,
+            0f,
+            1.7f
+        )
+    )
+
+    // Поток событий
+    private val _events = MutableSharedFlow<GameEvent>(extraBufferCapacity = 64)
+    val events: SharedFlow<GameEvent> = _events.asSharedFlow()
+
+    private val _commands = MutableSharedFlow<GameCommand>(extraBufferCapacity = 64)
+    val commands: SharedFlow<GameCommand> = _commands.asSharedFlow()
+
+    fun trySend(cmd: GameCommand): Boolean = _commands.tryEmit(cmd)
+    // tryEmit - эт быстрый способ отправить команду (без корутины)
+
+    private val _players = MutableStateFlow(
+        mapOf(
+            "Tyler" to initialPlayerState("Tyler"),
+            "Sas" to initialPlayerState("Sas")
+        )
+    )
+    val players: StateFlow<Map<String, PlayerState>> = _players.asStateFlow()
+
+    fun start(scope: kotlinx.coroutines.CoroutineScope, questSystem: QuestSystem) {
+        // Сервер слушает и выполняет их
+
+        scope.launch {
+            commands.collect{ cmd ->
+                progressCommand(cmd, questSystem)
+            }
+        }
+    }
+
+    private fun getPlayerData(playerId: String): PlayerState {
+        return _players.value[playerId] ?: initialPlayerState(playerId)
+    }
+
+    private fun setPlayerData(playerId: String, newdata: PlayerState) {
+        val map = _players.value.toMutableMap()
+        map[playerId] = newdata
+        _players.value = map.toMap()
+    }
+
+    fun updatePlayer(playerId: String, change: (PlayerState) -> PlayerState){
+        val oldMap =_players.value
+        val oldPlayer = oldMap[playerId] ?: return
+
+        val newPlayer = change(oldPlayer)
+
+        val newMap = oldMap.toMutableMap()
+        newMap[playerId] = newPlayer
+        _players.value = newMap.toMap()
+    }
+
+    // Поиск обьекта ближайшего, в чью зону, попадает игрок
+    private fun nearestObject(player: PlayerState): WorldObjectDef?{
+        val candidates = worldObjects.filter { obj ->
+            distance2d(player.posX, player.posZ, obj.x, obj.z) <= obj.interactRadius
+        }
+
+        return candidates.minByOrNull { obj ->
+            distance2d(player.posX, player.posZ, obj.x, obj.z)
+        }
+        // minByOrNull - минимальное из возможнх или null(взять ближайший обьект по расстоянию к игроку)
+        // если список обьектов пуст вернуть null
+    }
+
+    // Сделать метод refreshPlayerArea (playerId: String)
+    // Он должен пересчитывать в какой зоне сейчас находится игрок
+    // нужно получить игрока, ближайший обьект, сохранить строе состояние игрока в какой зоне он был ранее
+    // получить id зону в которую он попал
+
+    // сравнение новой зоны со старой
+    // в зависимости от того в какой зоне он находится в newHint вернуть текст для зоны alchemist и зоны herb_source
+    // после обновляем игркоа (updatePlayer) ,свойство hintText
 }

@@ -219,7 +219,7 @@ class QuestSystem{
     private fun updateAlchemistQuest(q: QuestStateOnServer, event: GameEvent): QuestStateOnServer{
         // автоматический переход из step 0 в step 1 (как будто он сразу говорит с нпс)
         // сбор травы - вы меняете progressCurrent по умолчанию 0 и симулируете поднятие травы изменяя до progressTarget
-        // Создаете передачу предметов нпс если условие удовлетворяет 
+        // Создаете передачу предметов нпс если условие удовлетворяет
     }
 }
 

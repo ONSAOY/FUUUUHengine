@@ -42,7 +42,8 @@ enum class QuestState{
 
 enum class WorldObjectType{
     ALCHEMIST,
-    HERB_SOURCE
+    HERB_SOURCE,
+    CHEST
 }
 
 // Описания обьекта в мире
@@ -70,7 +71,8 @@ data class PlayerState(
     val inventory: Map<String, Int>,
     val alchemistMemory: NpcMemory,
     val currentAreaId: String?,          // В какой локации накодится (может быть null)
-    val hintText: String
+    val hintText: String,
+    val gold: Int
 )
 
 // ------ Основные функции
@@ -99,7 +101,8 @@ fun initialPlayerState(playerId: String): PlayerState{
                 false
             ),
             null,
-            "Подойди к любой области на карте"
+            "Подойди к любой области на карте",
+            0
         )
     }else{
         PlayerState(
@@ -114,7 +117,8 @@ fun initialPlayerState(playerId: String): PlayerState{
                 false
             ),
             null,
-            "Подойди к любой области на карте"
+            "Подойди к любой области на карте",
+            0
         )
     }
 }
@@ -297,6 +301,13 @@ class GameServer{
             3f,
             0f,
             1.7f
+        ),
+        WorldObjectDef(
+            "treasure_box",
+            WorldObjectType.CHEST,
+            9f,
+            0f,
+            1.7f
         )
     )
 
@@ -317,6 +328,15 @@ class GameServer{
         )
     )
     val players: StateFlow<Map<String, PlayerState>> = _players.asStateFlow()
+
+    val interact: Boolean = false
+
+    fun isInteract(playerId: String, cmd: GameCommand){
+
+        if (interact == true){
+
+        }
+    }
 
     fun start(scope: kotlinx.coroutines.CoroutineScope, questSystem: QuestSystem) {
         // Сервер слушает и выполняет их
@@ -362,12 +382,10 @@ class GameServer{
         // если список обьектов пуст вернуть null
     }
 
-    // Сделать метод refreshPlayerArea (playerId: String)
-    // Он должен пересчитывать в какой зоне сейчас находится игрок
-    // нужно получить игрока, ближайший обьект, сохранить строе состояние игрока в какой зоне он был ранее
-    // получить id зону в которую он попал
-
-    // сравнение новой зоны со старой
-    // в зависимости от того в какой зоне он находится в newHint вернуть текст для зоны alchemist и зоны herb_source
-    // после обновляем игркоа (updatePlayer) ,свойство hintText
+    // 1.Сделать 3 world-zone - Добавить ещё один обьект: treasure_box
+    // -у нее тип CHEST
+    // -если игрок рядом и жмет interact -> полусает gold + 1
+    // 2.Добавить в CmdChooseDialogueOption проверку:
+    // -Если игрок уже вышел из зоны Алхимика, а потом нажал на кнопку диалога -> сервер напишет:
+    // "Ты отошел слишком далеко от Алхимика"
 }

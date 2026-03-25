@@ -331,12 +331,18 @@ class GameServer{
 
     val interact: Boolean = false
 
-    fun isInteract(playerId: String, cmd: GameCommand){
+    private fun isInteract(playerId: String, cmd: GameCommand){
+        val player = getPlayerData(cmd.playerId)
+        val obj = nearestObject(player)
 
         if (interact == true){
-
+            updatePlayer(cmd.playerId) { p ->
+                p.copy(gold = p.gold + 1)
+            }
         }
     }
+
+
 
     fun start(scope: kotlinx.coroutines.CoroutineScope, questSystem: QuestSystem) {
         // Сервер слушает и выполняет их
@@ -382,10 +388,28 @@ class GameServer{
         // если список обьектов пуст вернуть null
     }
 
+    private fun CmdChooseDialogueoption(playerId: String, cmd: GameCommand){
+        val player = getPlayerData(cmd.playerId)
+        when(cmd){
+            is CmdInteract -> {
+                val obj = nearestObject(player)
+                if (obj.type != WorldObjectType.ALCHEMIST){
+                    _events.tryEmit(ServerMessage(cmd.playerId, "Ты отошел слишком далеко от Алхимика"))
+                    return
+                }
+            }
+            else -> ""
+        }
+    }
     // 1.Сделать 3 world-zone - Добавить ещё один обьект: treasure_box
     // -у нее тип CHEST
     // -если игрок рядом и жмет interact -> полусает gold + 1
     // 2.Добавить в CmdChooseDialogueOption проверку:
     // -Если игрок уже вышел из зоны Алхимика, а потом нажал на кнопку диалога -> сервер напишет:
     // "Ты отошел слишком далеко от Алхимика"
+
+    // 1) a и b
+    // 2) a
+    // 3) a
+
 }

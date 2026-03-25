@@ -393,7 +393,7 @@ class GameServer{
         when(cmd){
             is CmdInteract -> {
                 val obj = nearestObject(player)
-                if (obj.type != WorldObjectType.ALCHEMIST){
+                if (obj?.type != WorldObjectType.ALCHEMIST){
                     _events.tryEmit(ServerMessage(cmd.playerId, "Ты отошел слишком далеко от Алхимика"))
                     return
                 }

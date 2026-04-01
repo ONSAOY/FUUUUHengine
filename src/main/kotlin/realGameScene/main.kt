@@ -343,7 +343,7 @@ class GameServer{
 
         if (interact == true){
             updatePlayer(cmd.playerId) { p ->
-                p.copy(gold = p.gold + 20)
+                p.copy(gold = p.gold + 1)
             }
         }
     }

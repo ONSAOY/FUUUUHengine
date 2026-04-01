@@ -1,7 +1,5 @@
 package realGameScene
 
-import QuestJournal2.PlayerData
-import QuestJournal2.QuestSystem
 import de.fabmax.kool.KoolApplication
 import de.fabmax.kool.addScene
 import de.fabmax.kool.math.Vec3f
@@ -133,7 +131,7 @@ data class DialogueOption(
 data class DialogueView(
     val npcName: String,
     val text: String,
-    val option: List<DialogueOption>
+    val options: List<DialogueOption>
 )
 
 fun buildAchemistDialogue(player: PlayerState): DialogueView{
@@ -340,7 +338,7 @@ class GameServer{
 
         if (interact == true){
             updatePlayer(cmd.playerId) { p ->
-                p.copy(gold = p.gold + 1)
+                p.copy(gold = p.gold + 20)
             }
         }
     }
@@ -496,7 +494,26 @@ class GameServer{
                         _events.emit(InteractedWithHerbSource(cmd.playerId, obj.id))
                         _events.emit(InventoryChanged(cmd.playerId, "herb", newCount))
                     }
+                    WorldObjectType.CHEST -> {
+                        if (player.questState != QuestState.GOOD_END){
+                            _events.emit(ServerMessage(cmd.playerId, "Сначала пройди квест с травой"))
+                            return
+                        }
+
+
+                        val oldGoldCount = herbCount(player)
+                        val newGoldCount = oldGoldCount + 20
+                        val newInventory = player.inventory + ("gold" to newGoldCount)
+
+                        updatePlayer(cmd.playerId){ p ->
+                            p.copy(inventory = newInventory)
+                        }
+
+                        _events.emit(InteractedWithHerbSource(cmd.playerId, obj.id))
+                        _events.emit(InventoryChanged(cmd.playerId, "herb", newCount))
+                    }
                     else -> ""
+
                 }
             }
 
@@ -695,6 +712,21 @@ fun main() = KoolApplication{
         }
 
         herbNode.transform.translate(3f, 0f, 0f)
+        
+        val niggerChestNode = addColorMesh {
+            generate {
+                cube {
+                    colored()
+                }
+            }
+            shader = KslPbrShader{
+                color { vertexColor() }
+                metallic(0f)
+                roughness(0.25f)
+            }
+        }
+
+        niggerChestNode.transform.translate(0f, 3f, 0f)
 
         lighting.singleDirectionalLight {
             setup(Vec3f(-1f, -1f, -1f))
@@ -783,6 +815,56 @@ fun main() = KoolApplication{
                         }
                         // Кнопка взаимодействия с ближайщим
                         // отображения текста диалога и кнопок выбора
+                    }
+
+                    Text("Потрогать: "){
+                        modifier.margin(top = sizes.gap)
+                    }
+
+                    Row {
+                        Button ("Взаимодействовать с ближайшим"){
+                            modifier.margin(end = 8.dp).onClick {
+                                server.trySend(CmdInteract(player.playerId))
+                            }
+                        }
+                    }
+
+                    Text("${dialogue.npcName}: "){
+                        modifier.margin(top = sizes.gap)
+                    }
+
+                    Text(dialogue.text){
+                        modifier.margin(bottom = sizes.smallGap)
+                    }
+
+                    if (dialogue.options.isEmpty()){
+                        Text ("(Сейчас доступных ответов нет)"){
+                            modifier.font(sizes.smallText).margin(bottom = sizes.gap)
+                        }
+                    } else {
+                        Row {
+                            for (option in dialogue.options) {
+                                Button (option.text){
+                                    modifier.margin(end = 8.dp).onClick {
+                                        server.trySend(
+                                            CmdChooseDialogueoption(
+                                                playerId = player.playerId,
+                                                optionId = option.id
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Text ("Log:"){
+                        modifier.margin(top = sizes.gap)
+                    }
+
+                    for (line in hud.log.use()) {
+                        Text (line){
+                            modifier.font(sizes.smallText)
+                        }
                     }
                 }
             }

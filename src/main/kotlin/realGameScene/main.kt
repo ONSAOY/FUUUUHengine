@@ -185,7 +185,7 @@ fun buildAchemistDialogue(player: PlayerState): DialogueView{
         QuestState.GOOD_END -> {
             val text =
                 if (memory.receivedHerb){
-                    "Спасибо, я теперь точно много зелий наварю, я тебя запомнил, заходи ещё"
+                    "Спасибо, я теперь точно много зелий наварю, можешь забрать свою награду"
                 }else{
                     "Ты завершил квест, но память не обновилась"
                 }
@@ -259,6 +259,11 @@ data class InteractWithNpc(
 ): GameEvent
 
 data class InteractedWithHerbSource(
+    override val playerId: String,
+    val sourceId: String
+): GameEvent
+
+data class InteractedWithGoldSource(
     override val playerId: String,
     val sourceId: String
 ): GameEvent
@@ -501,16 +506,15 @@ class GameServer{
                         }
 
 
-                        val oldGoldCount = herbCount(player)
+                        val oldGoldCount = player.gold
                         val newGoldCount = oldGoldCount + 20
-                        val newInventory = player.inventory + ("gold" to newGoldCount)
+
 
                         updatePlayer(cmd.playerId){ p ->
-                            p.copy(inventory = newInventory)
+                            p.copy(gold = newGoldCount)
                         }
 
-                        _events.emit(InteractedWithHerbSource(cmd.playerId, obj.id))
-                        _events.emit(InventoryChanged(cmd.playerId, "herb", newCount))
+                        _events.emit(InteractedWithGoldSource(cmd.playerId, obj.id))
                     }
                     else -> ""
 
@@ -660,6 +664,7 @@ fun eventToText(e: GameEvent): String{
         is NpcMemoryChanged -> "NpcMemoryChanged ${e.memory}"
         is ServerMessage -> "ServerMessage ${e.text}"
     }
+
 }
 
 fun main() = KoolApplication{
@@ -712,7 +717,7 @@ fun main() = KoolApplication{
         }
 
         herbNode.transform.translate(3f, 0f, 0f)
-        
+
         val niggerChestNode = addColorMesh {
             generate {
                 cube {

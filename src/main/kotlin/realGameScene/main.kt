@@ -663,7 +663,9 @@ fun eventToText(e: GameEvent): String{
         is QuestStateChanged -> "QuestStateChanged ${e.newState}"
         is NpcMemoryChanged -> "NpcMemoryChanged ${e.memory}"
         is ServerMessage -> "ServerMessage ${e.text}"
+        else -> ""
     }
+
 
 }
 

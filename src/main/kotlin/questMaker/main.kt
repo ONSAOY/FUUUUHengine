@@ -1041,4 +1041,448 @@ fun main() = KoolApplication {
             }
         }
     }
+    addScene {
+        setupUiScene(ClearColorLoad)
+
+        hud.activePlayerIdFlow
+            .flatMapLatest { pid ->
+                server.players.map { map ->
+                    map[pid] ?: initialPlayerState(pid)
+                }
+            }
+            .onEach { player ->
+                hud.playerSnapShot.value = player
+            }
+            .launchIn(coroutineScope)
+        hud.activePlayerIdFlow
+            .flatMapLatest { pid ->
+                server.events.filter { it.playerId == pid }
+            }
+            .map { event ->
+                eventToText(event)
+            }
+            .onEach { line ->
+                hudLog(hud, "[${hud.activePlayerIdUi.value}] $line")
+            }
+            .launchIn(coroutineScope)
+        addPanelSurface {
+            modifier
+                .align(AlignmentX.Start, AlignmentY.Top)
+                .margin(16.dp)
+                .background(RoundRectBackground(Color(0f, 0f, 0f, 0.5f), 14.dp))
+                .padding(12.dp)
+            Column {
+                val player = hud.playerSnapShot.use()
+                val dialogue = buildAchemistDialogue(player)
+
+                Text("Игрок: ${hud.activePlayerIdUi.use()}") {
+                    modifier.margin(bottom = sizes.gap)
+                }
+
+                Text("Позиция игрока: ${player.gridX} | ${player.gridZ}") {  }
+                Text("Взгляд: ${player.facing}") { modifier.font(sizes.smallText) }
+
+                Text(currentObjective(player)) { modifier.font(sizes.smallText) }
+                Text(formatInventory(player)) { modifier.font(sizes.smallText) }
+                Text("Золото: ${player.gold}") { modifier.font(sizes.smallText) }
+                Text("Сундук залутан?: ${player.chestLooted}") { modifier.font(sizes.smallText) }
+                Text("Дверь открыта?: ${player.doorOpened}") { modifier.font(sizes.smallText) }
+                Text("Память npc: ${formatMemory(player.alchemistMemory)}") {
+                    modifier
+                        .margin(bottom = sizes.gap)
+                        .font(sizes.smallText)
+                }
+
+                Row {
+                    Button ("Сменить игрока"){
+                        modifier.margin(end = 8.dp).onClick {
+                            val newId = if (hud.activePlayerIdUi.value == "Tyler") "Sas" else "Tyler"
+
+                            hud.activePlayerIdUi.value = newId
+                            hud.activePlayerIdFlow.value = newId
+                        }
+                    }
+                }
+
+                Row {
+                    Button("Лево"){
+                        modifier.onClick{
+                            server.trySend(CmdStepMove(player.playerId, -1, 0))
+                        }
+                    }
+                    Button("Право"){
+                        modifier.onClick{
+                            server.trySend(CmdStepMove(player.playerId, 1, 0))
+                        }
+                    }
+                    Button("Вперед"){
+                        modifier.onClick{
+                            server.trySend(CmdStepMove(player.playerId, 0, -1))
+                        }
+                    }
+                    Button("Назад"){
+                        modifier.onClick{
+                            server.trySend(CmdStepMove(player.playerId, 0, 1))
+                        }
+                    }
+                    // Кнопка взаимодействия с ближайщим
+                    // отображения текста диалога и кнопок выбора
+                }
+                Text("Потрогать: "){
+                    modifier.margin(top = sizes.gap)
+                }
+
+                Row {
+                    Button ("Взаимодействовать с ближайшим"){
+                        modifier.margin(end = 8.dp).onClick {
+                            server.trySend(CmdInteract(player.playerId))
+                        }
+                    }
+                }
+
+                Text(dialogue.text){
+                    modifier.margin(bottom = sizes.smallGap)
+                }
+
+                if (dialogue.options.isEmpty()){
+                    Text ("(Сейчас доступных ответов нет)"){
+                        modifier.font(sizes.smallText).margin(bottom = sizes.gap)
+                    }
+                } else {
+                    Row {
+                        for (option in dialogue.options) {
+                            Button (option.text){
+                                modifier.margin(end = 8.dp).onClick {
+                                    server.trySend(
+                                        CmdChooseDialogueOption(
+                                            playerId = player.playerId,
+                                            optionId = option.id
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                Text ("Log:"){
+                    modifier.margin(top = sizes.gap)
+                }
+
+                for (line in hud.log.use()) {
+                    Text (line){
+                        modifier.font(sizes.smallText)
+                    }
+                }
+            }
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//1488

@@ -550,6 +550,16 @@
 //        // Запускаем подписку на player data (gold inventory) для активного игрока
 //        coroutineScope.launch {
 //            server.players.collect{map ->
+//                val activeId = hud.activePlayerIdUi.value
+//                val playeData = map[activeId] ?: return
+//                hud.gold.value = playerData.gold
+//                
+//                if(playerData.inventory.isEmpty()){
+//                    hud.inventoryText.value = "Инвентарь пуст"
+//                }else{
+//                    val items = playeData.inventory.map{"${it.key}(${it.value})"}.joinToString(", ")
+//                    hud.inventoryText.value = "Инвентарь: $items"
+//                }
 //                // получаем активного игрока id
 //                // Сохраням игрока по его айди из map если null возвращаем collect
 //                // присваиваем кол-во золота в hud состояние

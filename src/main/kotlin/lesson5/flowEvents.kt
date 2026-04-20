@@ -156,6 +156,14 @@ class SaveSystem{
 
 
 class  UiState{
+    val activePlayerId = mutableStateOf("Олег")
+
+    val hp = mutableStateOf(100)
+    val gold = mutableStateOf(0)
+
+    val questState = mutableStateOf("START")
+
+    val logLines = mutableListOf<String>()
     // Создать состояние, хранящие активного игрока по умолчанию Олег
     // То же самое для hp и gold
     // Создать состояние хранящие questState - изменяемым состоянием по умолчанию "START"

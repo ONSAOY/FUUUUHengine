@@ -591,6 +591,7 @@ class GameServer{
 
             is CmdSwitchActivePlayer -> {
                 // Дома
+                _events.emit(ServerMessage(cmd.playerId, "Вы больше не ${cmd.playerId}, теперь вы ${cmd.newPlayerId}"))
             }
 
             is CmdResetPlayer -> {

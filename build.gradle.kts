@@ -1,5 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.21"
+    application
 }
 
 group = "org.example"
@@ -15,6 +16,10 @@ dependencies {
     implementation("de.fabmax.kool:kool-physics:0.19.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+}
+
+application {
+    mainClass.set("chess.MainKt")
 }
 
 tasks.test {
